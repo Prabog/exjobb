@@ -14,6 +14,22 @@ prior_temperature = 0
 coffee_counter = 0
 coffee_machine_on = False
 
+import psutil
+
+def print_self_process_info():
+    # Get the current process ID
+    pid = psutil.Process().pid
+
+    # Get memory usage
+    memory_info = psutil.Process(pid).memory_info()
+    mem_usage = memory_info.rss / (1024 * 1024)  # Convert to MB
+
+    # Get CPU usage
+    cpu_usage = psutil.Process(pid).cpu_percent()
+
+    print(f"PID: {pid}, Memory Usage: {mem_usage} MB, CPU Usage: {cpu_usage}%")
+
+
 # Route for the home page, renders the index.html template.
 @coffee_app.route("/")
 def home():
@@ -31,17 +47,19 @@ def process_temperature_update():
     data = request.json
     current_temperature = float(data["temperature"])
     print("Received temperature:", current_temperature)
-    
+
+    print_self_process_info()
+
     # Starts timer -> coffee machine is on.
     if current_temperature >= 40 and coffee_machine_on == False:
         start_time = actions.start_timer()
         coffee_machine_on = True
-        coffee_counter += 1 
+        coffee_counter += 1
 
     # Ends timer -> the coffee has cooled down.
     if current_temperature < 40 and coffee_machine_on == True:
         time = actions.end_timer_in_minutes(start_time)
-    
+
     # Triggered if: user forgot coffee -> sends pushover notification.
     if prior_temperature >= 40 and current_temperature < 40 and time >= 50:
         actions.coffee_pushover_notifier()
@@ -53,7 +71,7 @@ def process_temperature_update():
         coffee_machine_on = False
     else:
         print(f"Prior temperature: {prior_temperature}, New temperature: {current_temperature}")
-    
+
     prior_temperature = current_temperature
     response = "Temperature received successfully"
     return response
