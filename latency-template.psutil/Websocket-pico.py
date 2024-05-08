@@ -13,11 +13,12 @@ import utime
 
 # Misc libraries
 import time
+import ujson
 
 def connect_to_wifi():
     # WiFi and network settings
-    SSID = "Biblioteket"
-    PASSWORD = "alicekompis"
+    SSID = "imel 1g"
+    PASSWORD = "96902341"
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.connect(SSID, PASSWORD)
@@ -79,18 +80,32 @@ def send_temperature(client_socket):
     temperature = read_temperature()
     payload = {"temperature": temperature}
     print("Current temperature:", temperature)
+    
+    # Encode payload as JSON
+    json_payload = ujson.dumps(payload)
+
+    # Serialize payload manually
+    #payload_bytes = "temperature=" + str(payload["temperature"])
+
+
 
     # Times latency in milliseconds.
-    start_time = time.ticks_ms()
-    client_socket.send(payload)
-    response = client_socket.recv(1024)
-    end_time = time.ticks_ms()
+    start_time = utime.ticks_ms()
+    client_socket.sendall(json_payload)
+    response_bytes = client_socket.recv(1024)
+    end_time = utime.ticks_ms()
 
-    print(f"Received from server: {response.decode()}")
+    # Decode response from bytes to string
+    response = response_bytes.decode('utf-8')
+
+    print(f"Received from server: {response}")
 
     # Calculate latency
     latency = (end_time - start_time) / 1000.0
     total_latency += latency
+
+    return {"latency": latency}
+
 
     del payload  # Free up memory
     del response  # Free up memory
@@ -121,7 +136,7 @@ if __name__ == "__main__":
 
             # Print current average values
             print(f"Average latency: {total_latency / loop_counter} seconds")
-            time.sleep(10)
+            time.sleep(1)
 
         except KeyboardInterrupt:
             print("User ended the program.")
